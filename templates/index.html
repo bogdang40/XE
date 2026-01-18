@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XE Rate Scraper | USD → CAD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0e17;
+            --bg-card: #111827;
+            --bg-elevated: #1a2234;
+            --border: #2d3a4f;
+            --border-focus: #3b82f6;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --gradient-start: #3b82f6;
+            --gradient-end: #06b6d4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Animated Background */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 70%);
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-top: 2rem;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            margin-top: 0.5rem;
+        }
+
+        .currency-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            margin-top: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+        }
+
+        .currency-badge .arrow {
+            color: var(--accent-cyan);
+        }
+
+        /* Main Card */
+        .main-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1.5rem;
+            align-items: end;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input[type="date"] {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            padding: 0.875rem 1rem;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        input[type="date"]:hover {
+            border-color: var(--text-muted);
+        }
+
+        input[type="date"]:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.7;
+            cursor: pointer;
+        }
+
+        /* Button */
+        .btn-primary {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 160px;
+            justify-content: center;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--accent-cyan);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-elevated);
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .rate-limit-warning {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--accent-amber);
+        }
+
+        /* Results Table */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .results-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .results-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-secondary {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.625rem 1rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-secondary.copied {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        th {
+            background: var(--bg-elevated);
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9375rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: var(--bg-elevated);
+        }
+
+        .rate-value {
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        .status-success {
+            color: var(--accent-green);
+        }
+
+        .status-error {
+            color: var(--accent-red);
+        }
+
+        /* Copy Format Section */
+        .copy-formats {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .copy-formats h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .format-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .format-tab {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .format-tab:hover {
+            background: var(--border);
+        }
+
+        .format-tab.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .code-block {
+            position: relative;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .copy-code-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-code-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        .copy-code-btn.copied {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: white;
+        }
+
+        /* Stats Section */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.25rem;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-success {
+            border-color: var(--accent-green);
+        }
+
+        .toast-icon {
+            font-size: 1.25rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">XE</div>
+                <h1>Rate Scraper</h1>
+            </div>
+            <p class="subtitle">Historical Exchange Rate Extraction Tool</p>
+            <div class="currency-badge">
+                <span>🇺🇸 USD</span>
+                <span class="arrow">→</span>
+                <span>🇨🇦 CAD</span>
+            </div>
+        </header>
+
+        <div class="main-card">
+            <form id="scrapeForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" required>
+                    </div>
+                    <button type="submit" class="btn-primary" id="submitBtn">
+                        <span class="btn-text">Fetch Rates</span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-header">
+                    <span class="progress-text" id="progressText">Fetching rates...</span>
+                    <span class="progress-count" id="progressCount">0 / 0</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="rate-limit-warning">
+                    ⏱️ Rate limiting active — requests are throttled (2-5 seconds apart) to avoid being blocked
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="main-card">
+                <div class="results-header">
+                    <h2 class="results-title">Results</h2>
+                    <div class="results-actions">
+                        <button class="btn-secondary" id="copyTableBtn">
+                            📋 Copy Table
+                        </button>
+                        <button class="btn-secondary" id="downloadCsvBtn">
+                            ⬇️ Download CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Total Days</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statSuccess">0</div>
+                        <div class="stat-label">Successful</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statAvg">-</div>
+                        <div class="stat-label">Avg Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statRange">-</div>
+                        <div class="stat-label">Min → Max</div>
+                    </div>
+                </div>
+
+                <div class="table-wrapper" style="margin-top: 1.5rem;">
+                    <table id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Rate (USD → CAD)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="copy-formats">
+                    <h3>📝 Copy for Notebook</h3>
+                    <div class="format-tabs">
+                        <button class="format-tab active" data-format="tsv">Tab-Separated</button>
+                        <button class="format-tab" data-format="csv">CSV</button>
+                        <button class="format-tab" data-format="json">JSON</button>
+                        <button class="format-tab" data-format="python">Python Dict</button>
+                    </div>
+                    <div class="code-block">
+                        <button class="copy-code-btn" id="copyCodeBtn">Copy</button>
+                        <pre id="codeOutput"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Data sourced from <a href="https://www.xe.com" target="_blank">XE.com</a> • Rate limited to respect their servers</p>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast">
+        <span class="toast-icon">✓</span>
+        <span class="toast-message" id="toastMessage">Copied to clipboard!</span>
+    </div>
+
+    <script>
+        // =====================================================================
+        // STATE
+        // =====================================================================
+        
+        let results = [];
+        let currentFormat = 'tsv';
+
+        // =====================================================================
+        // ELEMENTS
+        // =====================================================================
+
+        const form = document.getElementById('scrapeForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressText = document.getElementById('progressText');
+        const progressCount = document.getElementById('progressCount');
+        const progressFill = document.getElementById('progressFill');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsBody = document.getElementById('resultsBody');
+        const codeOutput = document.getElementById('codeOutput');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // =====================================================================
+        // DATE DEFAULTS
+        // =====================================================================
+
+        // Set default dates (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        endDateInput.value = formatDate(today);
+        startDateInput.value = formatDate(thirtyDaysAgo);
+        endDateInput.max = formatDate(today);
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // =====================================================================
+        // FORM SUBMISSION
+        // =====================================================================
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showToast('Start date must be before end date', 'error');
+                return;
+            }
+
+            // Calculate days
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+            if (days > 90) {
+                showToast('Date range cannot exceed 90 days', 'error');
+                return;
+            }
+
+            // Generate date list
+            const dates = [];
+            let current = new Date(startDate);
+            while (current <= new Date(endDate)) {
+                dates.push(formatDate(current));
+                current.setDate(current.getDate() + 1);
+            }
+
+            // Reset UI
+            results = [];
+            resultsBody.innerHTML = '';
+            progressContainer.classList.add('active');
+            resultsSection.classList.remove('active');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner"></div> Fetching...';
+
+            // Fetch one by one for progressive updates
+            for (let i = 0; i < dates.length; i++) {
+                const date = dates[i];
+                progressText.textContent = `Fetching ${date}...`;
+                progressCount.textContent = `${i + 1} / ${dates.length}`;
+                progressFill.style.width = `${((i + 1) / dates.length) * 100}%`;
+
+                try {
+                    const response = await fetch('/api/scrape-single', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ date })
+                    });
+
+                    const result = await response.json();
+                    results.push(result);
+
+                    // Add to table immediately
+                    addResultRow(result);
+                } catch (error) {
+                    results.push({
+                        date,
+                        rate: null,
+                        status: 'error',
+                        error: error.message
+                    });
+                }
+            }
+
+            // Complete
+            progressContainer.classList.remove('active');
+            resultsSection.classList.add('active');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span class="btn-text">Fetch Rates</span>';
+
+            updateStats();
+            updateCodeOutput();
+            showToast(`Successfully fetched ${results.filter(r => r.status === 'success').length}/${results.length} rates`);
+        });
+
+        // =====================================================================
+        // RESULTS
+        // =====================================================================
+
+        function addResultRow(result) {
+            const row = document.createElement('tr');
+            const rateDisplay = result.rate ? result.rate.toFixed(6) : 'N/A';
+            const statusClass = result.status === 'success' ? 'status-success' : 'status-error';
+            const statusText = result.status === 'success' ? '✓ OK' : `✗ ${result.error || 'Failed'}`;
+
+            row.innerHTML = `
+                <td>${result.date}</td>
+                <td class="rate-value">${rateDisplay}</td>
+                <td class="${statusClass}">${statusText}</td>
+            `;
+            resultsBody.appendChild(row);
+        }
+
+        function updateStats() {
+            const successful = results.filter(r => r.status === 'success');
+            const rates = successful.map(r => r.rate);
+
+            document.getElementById('statTotal').textContent = results.length;
+            document.getElementById('statSuccess').textContent = successful.length;
+
+            if (rates.length > 0) {
+                const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
+                const min = Math.min(...rates);
+                const max = Math.max(...rates);
+
+                document.getElementById('statAvg').textContent = avg.toFixed(4);
+                document.getElementById('statRange').textContent = `${min.toFixed(4)} → ${max.toFixed(4)}`;
+            }
+        }
+
+        // =====================================================================
+        // OUTPUT FORMATS
+        // =====================================================================
+
+        function updateCodeOutput() {
+            const successful = results.filter(r => r.status === 'success');
+            let output = '';
+
+            switch (currentFormat) {
+                case 'tsv':
+                    output = 'Date\tUSD_CAD_Rate\n';
+                    output += successful.map(r => `${r.date}\t${r.rate}`).join('\n');
+                    break;
+
+                case 'csv':
+                    output = 'Date,USD_CAD_Rate\n';
+                    output += successful.map(r => `${r.date},${r.rate}`).join('\n');
+                    break;
+
+                case 'json':
+                    output = JSON.stringify(successful.map(r => ({
+                        date: r.date,
+                        rate: r.rate
+                    })), null, 2);
+                    break;
+
+                case 'python':
+                    output = 'usd_cad_rates = {\n';
+                    output += successful.map(r => `    "${r.date}": ${r.rate},`).join('\n');
+                    output += '\n}';
+                    break;
+            }
+
+            codeOutput.textContent = output;
+        }
+
+        // Format tab clicks
+        document.querySelectorAll('.format-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFormat = tab.dataset.format;
+                updateCodeOutput();
+            });
+        });
+
+        // =====================================================================
+        // COPY & DOWNLOAD
+        // =====================================================================
+
+        document.getElementById('copyCodeBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(codeOutput.textContent);
+                const btn = document.getElementById('copyCodeBtn');
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                showToast('Failed to copy', 'error');
+            }
+        });
+
+        document.getElementById('copyTableBtn').addEventListener('click', async () => {
+            const successful = results.filter(r => r.status === 'success');
+            let text = 'Date\tRate\n';
+            text += successful.map(r => `${r.date}\t${r.rate}`).join('\n');
+
+            try {
+                await navigator.clipboard.writeText(text);
+                const btn = document.getElementById('copyTableBtn');
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '📋 Copy Table';
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                showToast('Failed to copy', 'error');
+            }
+        });
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const successful = results.filter(r => r.status === 'success');
+            let csv = 'Date,USD_CAD_Rate\n';
+            csv += successful.map(r => `${r.date},${r.rate}`).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `usd_cad_rates_${startDateInput.value}_to_${endDateInput.value}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('CSV downloaded successfully');
+        });
+
+        // =====================================================================
+        // TOAST
+        // =====================================================================
+
+        function showToast(message, type = 'success') {
+            toastMessage.textContent = message;
+            toast.className = `toast toast-${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
